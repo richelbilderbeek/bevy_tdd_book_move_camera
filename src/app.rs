@@ -119,7 +119,7 @@ fn is_position_visible(app: &mut App, position: Vec2) -> bool {
     }
     let point = maybe_point.unwrap();
     println!("{},{}", point.x, point.y);
-    return true;
+    true
 
     /*
     let player_pos_3d = get_player_coordinat(app);
@@ -155,7 +155,7 @@ fn is_position_visible(app: &mut App, position: Vec2) -> bool {
 #[cfg(test)]
 fn is_player_visible(app: &mut App) -> bool {
     let position = get_player_coordinat(app).xy();
-    return is_position_visible(app, position);
+    is_position_visible(app, position)
 }
 
 #[cfg(test)]
@@ -263,17 +263,14 @@ mod tests {
     fn test_is_visible_position_visible() {
         let mut app = create_app(create_default_game_parameters());
         app.update();
-        assert_eq!(true, is_position_visible(&mut app, Vec2::new(0.0, 0.0)));
+        assert!(is_position_visible(&mut app, Vec2::new(0.0, 0.0)));
     }
 
     #[test]
     fn test_is_invisible_position_not_visible() {
         let mut app = create_app(create_default_game_parameters());
         app.update();
-        assert_eq!(
-            false,
-            is_position_visible(&mut app, Vec2::new(10000.0, 100000.0))
-        );
+        assert!(!is_position_visible(&mut app, Vec2::new(10000.0, 100000.0)));
     }
 
     #[test]
