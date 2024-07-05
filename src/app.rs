@@ -109,6 +109,51 @@ fn has_camera(app: &App) -> bool {
 }
 
 #[cfg(test)]
+fn is_player_visible(app: &mut App) -> bool {
+    let player_pos = get_player_coordinat(app).xy();
+    let mut camera_query = app.world.query::<(&Camera, &GlobalTransform)>();
+    let (camera, camera_transform) = camera_query.single(&app.world);
+    let maybe_point = camera.viewport_to_world_2d(camera_transform, player_pos);
+    if maybe_point.is_none() {
+        println!("NONE");
+        return false;
+    }
+    let point = maybe_point.unwrap();
+    println!("{},{}", point.x, point.y);
+    return true;
+
+    /*
+    let player_pos_3d = get_player_coordinat(app);
+    let player_pos_2d = Vec2::new(player_pos_3d.x, player_pos_3d.y);
+    let mut query = app.world.query::<(&Camera, &GlobalTransform)>();
+    let (camera, camera_transform) = query.single(&app.world);
+    let maybe_point = camera.viewport_to_world_2d(camera_transform, player_pos_2d);
+    if maybe_point.is_none() {
+        return false;
+    }
+    return true;
+    */
+
+    /*
+    let mut query = app.world.query::<(&Camera, &GlobalTransform)>();
+    let (camera, _) = query.single(&app.world);
+
+    let maybe_rect = camera.physical_viewport_rect();
+    if maybe_rect.is_none() {
+        println!("NONE");
+        return false;
+    }
+    let rect = maybe_rect.unwrap();
+    println!(
+        "({},{})-({},{})",
+        rect.min.x, rect.min.y, rect.max.x, rect.max.y
+    );
+    return true;
+
+     */
+}
+
+#[cfg(test)]
 fn print_all_components_names(app: &App) {
     for c in app.world.components().iter() {
         println!("{}", c.name())
@@ -210,6 +255,23 @@ mod tests {
     }
 
     #[test]
+    fn test_player_is_visible_at_start() {
+        let mut app = create_app(create_default_game_parameters());
+        app.update();
+        println!("{}", is_player_visible(&mut app))
+        //assert!(is_player_visible(&mut app));
+    }
+
+    #[test]
+    fn test_player_is_not_visible_at_start() {
+        let mut params = create_default_game_parameters();
+        params.initial_player_position = Vec3::new(10000.0, 10000.0, 1.0);
+        let mut app = create_app(params);
+        app.update();
+        assert!(!is_player_visible(&mut app));
+    }
+
+    #[test]
     fn test_get_all_components_names_for_empty_app() {
         let mut app = App::new();
         app.update();
@@ -223,6 +285,7 @@ mod tests {
         app.update();
         let v = get_all_components_names(&app);
         assert_eq!(v.len(), 24);
+        print_all_components_names(&app);
     }
 
     #[test]
