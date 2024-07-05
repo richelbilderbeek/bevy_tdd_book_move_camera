@@ -263,6 +263,8 @@ mod tests {
     fn test_is_visible_position_visible() {
         let mut app = create_app(create_default_game_parameters());
         app.update();
+        // By default, (0,0) is placed at the center of the screen,
+        // hence that position is visible
         assert!(is_position_visible(&mut app, Vec2::new(0.0, 0.0)));
     }
 
@@ -270,6 +272,10 @@ mod tests {
     fn test_is_invisible_position_not_visible() {
         let mut app = create_app(create_default_game_parameters());
         app.update();
+        // By default, (0,0) is placed at the center of the screen,
+        // after which the mapping matches the pixels.
+        // 10,000 pixels right and 10,000 pixes up is outside my of
+        // computer screen
         assert!(!is_position_visible(&mut app, Vec2::new(10000.0, 100000.0)));
     }
 
