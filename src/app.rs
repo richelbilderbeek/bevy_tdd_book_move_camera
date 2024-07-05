@@ -109,6 +109,21 @@ fn has_camera(app: &App) -> bool {
 }
 
 #[cfg(test)]
+fn is_position_visible_sleepy_tea(app: &mut App, position: Vec2) -> bool {
+    let position_3d = Vec3::new(position.x, position.y, 0.0);
+    let mut camera_query = app.world.query::<(&Camera, &GlobalTransform)>();
+    let (camera, camera_transform) = camera_query.single(&app.world);
+    let maybe_point = camera.world_to_viewport(camera_transform, position_3d);
+    if maybe_point.is_none() {
+        println!("NONE");
+        return false;
+    }
+    let point = maybe_point.unwrap();
+    println!("{},{}", point.x, point.y);
+    true
+}
+
+#[cfg(test)]
 fn is_position_visible(app: &mut App, position: Vec2) -> bool {
     let mut camera_query = app.world.query::<(&Camera, &GlobalTransform)>();
     let (camera, camera_transform) = camera_query.single(&app.world);
@@ -302,6 +317,31 @@ mod tests {
         app.update();
         let v = get_all_components_names(&app);
         assert_eq!(v.len(), 7);
+    }
+
+    // SleapTea's ideas
+    #[test]
+    fn test_player_is_visible_at_start_sleepy_tea() {
+        let mut app = create_app(create_default_game_parameters());
+        app.update();
+        // Fails
+        assert!(is_position_visible_sleepy_tea(
+            &mut app,
+            Vec2::new(0.0, 0.0)
+        ));
+    }
+
+    #[test]
+    fn test_player_is_not_visible_at_start_sleepy_tea() {
+        let mut params = create_default_game_parameters();
+        params.initial_player_position = Vec3::new(10000.0, 10000.0, 1.0);
+        let mut app = create_app(params);
+        app.update();
+        // Passes
+        assert!(!is_position_visible_sleepy_tea(
+            &mut app,
+            Vec2::new(10000.0, 10000.0)
+        ));
     }
 
     #[test]
