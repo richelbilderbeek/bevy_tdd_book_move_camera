@@ -109,11 +109,10 @@ fn has_camera(app: &App) -> bool {
 }
 
 #[cfg(test)]
-fn is_player_visible(app: &mut App) -> bool {
-    let player_pos = get_player_coordinat(app).xy();
+fn is_position_visible(app: &mut App, position: Vec2) -> bool {
     let mut camera_query = app.world.query::<(&Camera, &GlobalTransform)>();
     let (camera, camera_transform) = camera_query.single(&app.world);
-    let maybe_point = camera.viewport_to_world_2d(camera_transform, player_pos);
+    let maybe_point = camera.viewport_to_world_2d(camera_transform, position);
     if maybe_point.is_none() {
         println!("NONE");
         return false;
@@ -151,6 +150,12 @@ fn is_player_visible(app: &mut App) -> bool {
     return true;
 
      */
+}
+
+#[cfg(test)]
+fn is_player_visible(app: &mut App) -> bool {
+    let position = get_player_coordinat(app).xy();
+    return is_position_visible(app, position);
 }
 
 #[cfg(test)]
@@ -252,6 +257,23 @@ mod tests {
         let mut app = create_app(params);
         app.update();
         assert_eq!(get_camera_scale(&mut app), custom_camera_scale);
+    }
+
+    #[test]
+    fn test_is_visible_position_visible() {
+        let mut app = create_app(create_default_game_parameters());
+        app.update();
+        assert_eq!(true, is_position_visible(&mut app, Vec2::new(0.0, 0.0)));
+    }
+
+    #[test]
+    fn test_is_invisible_position_not_visible() {
+        let mut app = create_app(create_default_game_parameters());
+        app.update();
+        assert_eq!(
+            false,
+            is_position_visible(&mut app, Vec2::new(10000.0, 100000.0))
+        );
     }
 
     #[test]
