@@ -115,11 +115,9 @@ fn is_position_visible_sleepy_tea(app: &mut App, position: Vec2) -> bool {
     let (camera, camera_transform) = camera_query.single(&app.world);
     let maybe_point = camera.world_to_viewport(camera_transform, position_3d);
     if maybe_point.is_none() {
-        println!("NONE");
         return false;
     }
     let point = maybe_point.unwrap();
-    println!("{},{}", point.x, point.y);
     true
 }
 
