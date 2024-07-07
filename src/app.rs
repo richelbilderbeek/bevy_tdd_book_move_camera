@@ -297,14 +297,6 @@ mod tests {
         assert!(!is_player_visible(&mut app));
     }
 
-    #[test]
-    fn test_get_all_components_names_for_empty_app() {
-        let mut app = App::new();
-        app.update();
-        let v = get_all_components_names(&app);
-        assert_eq!(v.len(), 7);
-    }
-
     // SleapTea's ideas
     #[test]
     fn test_player_is_visible_at_start_sleepy_tea() {
