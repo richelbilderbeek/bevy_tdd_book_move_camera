@@ -64,21 +64,21 @@ fn count_n_players(app: &App) -> usize {
 #[cfg(test)]
 fn get_camera_scale(app: &mut App) -> f32 {
     let mut query = app.world_mut().query::<&OrthographicProjection>();
-    let projection = query.single(&app.world());
+    let projection = query.single(app.world());
     projection.scale
 }
 
 #[cfg(test)]
 fn get_player_coordinat(app: &mut App) -> Vec3 {
     let mut query = app.world_mut().query::<(&Transform, &Player)>();
-    let (transform, _) = query.single(&app.world());
+    let (transform, _) = query.single(app.world());
     transform.translation
 }
 
 #[cfg(test)]
 fn get_player_scale(app: &mut App) -> Vec3 {
     let mut query = app.world_mut().query::<(&Transform, &Player)>();
-    let (transform, _) = query.single(&app.world());
+    let (transform, _) = query.single(app.world());
     transform.scale
 }
 
@@ -107,7 +107,7 @@ fn has_camera(app: &App) -> bool {
 fn is_position_visible_sleepy_tea(app: &mut App, position: Vec2) -> bool {
     let position_3d = Vec3::new(position.x, position.y, 0.0);
     let mut camera_query = app.world_mut().query::<(&Camera, &GlobalTransform)>();
-    let (camera, camera_transform) = camera_query.single(&app.world());
+    let (camera, camera_transform) = camera_query.single(app.world());
     let maybe_point = camera.world_to_viewport(camera_transform, position_3d);
     if maybe_point.is_none() {
         return false;
@@ -119,7 +119,7 @@ fn is_position_visible_sleepy_tea(app: &mut App, position: Vec2) -> bool {
 #[cfg(test)]
 fn is_position_visible(app: &mut App, position: Vec2) -> bool {
     let mut camera_query = app.world_mut().query::<(&Camera, &GlobalTransform)>();
-    let (camera, camera_transform) = camera_query.single(&app.world());
+    let (camera, camera_transform) = camera_query.single(app.world());
     let maybe_point = camera.viewport_to_world_2d(camera_transform, position);
     if maybe_point.is_none() {
         println!("NONE");
