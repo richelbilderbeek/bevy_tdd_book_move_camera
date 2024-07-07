@@ -31,11 +31,6 @@ fn add_player(mut commands: Commands) {
     commands.spawn(Player);
 }
 
-#[cfg(test)]
-fn add_player_with_sprite(mut commands: Commands) {
-    commands.spawn((SpriteBundle { ..default() }, Player));
-}
-
 fn add_player_with_sprite_at_pos_with_scale(
     mut commands: Commands,
     initial_player_position: Vec3,
@@ -111,19 +106,19 @@ fn has_camera(app: &App) -> bool {
 #[cfg(test)]
 fn is_position_visible_sleepy_tea(app: &mut App, position: Vec2) -> bool {
     let position_3d = Vec3::new(position.x, position.y, 0.0);
-    let mut camera_query = app.world().query::<(&Camera, &GlobalTransform)>();
+    let mut camera_query = app.world_mut().query::<(&Camera, &GlobalTransform)>();
     let (camera, camera_transform) = camera_query.single(&app.world());
     let maybe_point = camera.world_to_viewport(camera_transform, position_3d);
     if maybe_point.is_none() {
         return false;
     }
-    let point = maybe_point.unwrap();
+    let _point = maybe_point.unwrap();
     true
 }
 
 #[cfg(test)]
 fn is_position_visible(app: &mut App, position: Vec2) -> bool {
-    let mut camera_query = app.world().query::<(&Camera, &GlobalTransform)>();
+    let mut camera_query = app.world_mut().query::<(&Camera, &GlobalTransform)>();
     let (camera, camera_transform) = camera_query.single(&app.world());
     let maybe_point = camera.viewport_to_world_2d(camera_transform, position);
     if maybe_point.is_none() {
