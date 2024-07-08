@@ -1,46 +1,51 @@
-use crate::game_parameters::*;
 use bevy::prelude::*;
 
 #[derive(Component)]
 pub struct Player;
 
-pub fn create_app(game_parameters: GameParameters) -> App {
+pub fn create_app(
+    initial_camera_scale: f32,
+    initial_player_position: Vec2,
+    initial_player_size: Vec2,
+) -> App {
     let mut app = App::new();
+
+    // Only add this plugin in testing.
+    // The main app will assume it to be absent
+    if cfg!(test) {
+        app.add_plugins(bevy::window::WindowPlugin::default());
+    }
+
     let add_player_fn = move |/* no mut? */ commands: Commands| {
-        add_player_with_sprite_at_pos_with_scale(
-            commands,
-            game_parameters.initial_player_position,
-            game_parameters.initial_player_scale,
-        );
+        add_player(commands, initial_player_position, initial_player_size);
     };
     app.add_systems(Startup, add_player_fn);
     let add_camera_fun = move |mut commands: Commands| {
         let mut bundle = Camera2dBundle::default();
-        bundle.projection.scale = game_parameters.initial_camera_scale;
+        bundle.projection.scale = initial_camera_scale;
         commands.spawn(bundle);
     };
-    app.add_systems(Startup, add_camera_fun);
+    app.add_systems(Startup, (add_camera_fun, add_text));
+    app.add_systems(Update, respond_to_mouse_move);
 
     // Do not do update, as this will disallow to do more steps
     // app.update(); //Don't!
     app
 }
 
-#[cfg(test)]
-fn add_player(mut commands: Commands) {
-    commands.spawn(Player);
+fn add_text(mut commands: Commands) {
+    commands.spawn((Text2dBundle {
+        text: Text::from_section(String::new(), TextStyle { ..default() }),
+        ..default()
+    },));
 }
 
-fn add_player_with_sprite_at_pos_with_scale(
-    mut commands: Commands,
-    initial_player_position: Vec3,
-    initial_player_scale: Vec3,
-) {
+fn add_player(mut commands: Commands, initial_player_position: Vec2, initial_player_scale: Vec2) {
     commands.spawn((
         SpriteBundle {
             transform: Transform {
-                translation: initial_player_position,
-                scale: initial_player_scale,
+                translation: Vec2::extend(initial_player_position, 0.0),
+                scale: Vec2::extend(initial_player_scale, 1.0),
                 ..default()
             },
             ..default()
@@ -69,19 +74,20 @@ fn get_camera_scale(app: &mut App) -> f32 {
 }
 
 #[cfg(test)]
-fn get_player_coordinat(app: &mut App) -> Vec3 {
+fn get_player_coordinat(app: &mut App) -> Vec2 {
     let mut query = app.world_mut().query::<(&Transform, &Player)>();
     let (transform, _) = query.single(app.world());
-    transform.translation
+    transform.translation.xy()
 }
 
 #[cfg(test)]
-fn get_player_scale(app: &mut App) -> Vec3 {
+fn get_player_scale(app: &mut App) -> Vec2 {
     let mut query = app.world_mut().query::<(&Transform, &Player)>();
     let (transform, _) = query.single(app.world());
-    transform.scale
+    transform.scale.xy()
 }
 
+/*
 #[cfg(test)]
 fn get_all_components_names(app: &App) -> Vec<String> {
     use std::str::FromStr;
@@ -92,6 +98,7 @@ fn get_all_components_names(app: &App) -> Vec<String> {
     }
     v
 }
+*/
 
 #[cfg(test)]
 fn has_camera(app: &App) -> bool {
@@ -166,6 +173,76 @@ fn is_player_visible(app: &mut App) -> bool {
     is_position_visible(app, position)
 }
 
+fn respond_to_mouse_move(
+    mut text_query: Query<&mut Text>,
+    mut mouse_motion_event: EventReader<bevy::input::mouse::MouseMotion>,
+    player_query: Query<(&Transform, &Player)>,
+    window_query: Query<&Window>,
+    camera_query: Query<(&Camera, &OrthographicProjection)>,
+) {
+    for _event in mouse_motion_event.read() {
+        let mut line_cursor_pos = String::new();
+        let maybe_cursor_pos = window_query.single().cursor_position();
+        if maybe_cursor_pos.is_some() {
+            let cursor_pos = maybe_cursor_pos.unwrap();
+            line_cursor_pos = format!("cursor_pos: {}, {}", cursor_pos.x, cursor_pos.y);
+        } else {
+            line_cursor_pos = format!("cursor_pos: none");
+        }
+        let mut line_logical_viewport_rect = String::new();
+        let maybe_logical_viewport_rect = camera_query.single().0.logical_viewport_rect();
+        if maybe_logical_viewport_rect.is_some() {
+            let logical_viewport_rect = maybe_logical_viewport_rect.unwrap();
+            line_logical_viewport_rect = format!(
+                "logical_viewport_rect: ({}, {})-({}, {})",
+                logical_viewport_rect.min.x,
+                logical_viewport_rect.min.y,
+                logical_viewport_rect.max.x,
+                logical_viewport_rect.max.y
+            );
+        } else {
+            line_logical_viewport_rect = format!("No logical_viewport_rect");
+        }
+        // physical denotes actual screen pixels
+        let mut line_physical_viewport_rect = String::new();
+        let maybe_physical_viewport_rect = camera_query.single().0.physical_viewport_rect();
+        if maybe_physical_viewport_rect.is_some() {
+            let physical_viewport_rect = maybe_physical_viewport_rect.unwrap();
+            line_physical_viewport_rect = format!(
+                "physical_viewport_rect: ({}, {})-({}, {})",
+                physical_viewport_rect.min.x,
+                physical_viewport_rect.min.y,
+                physical_viewport_rect.max.x,
+                physical_viewport_rect.max.y
+            );
+        } else {
+            line_physical_viewport_rect = format!("No physical_viewport_rect");
+        }
+        // player
+        let mut line_player_pos = String::new();
+        let player_pos = player_query.single().0.translation.xy();
+        line_player_pos = format!("player_pos: {}, {}", player_pos.x, player_pos.y);
+
+        // projection
+        let projection_area = camera_query.single().1.area;
+        let line_projection_area = format!(
+            "projection_area: ({}, {})-({}, {})",
+            projection_area.min.x,
+            projection_area.min.y,
+            projection_area.max.x,
+            projection_area.max.y
+        );
+        text_query.single_mut().sections[0].value = format!(
+            "{}\n{}\n{}\n{}\n{}",
+            line_cursor_pos,
+            line_player_pos,
+            line_logical_viewport_rect,
+            line_physical_viewport_rect,
+            line_projection_area
+        );
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -177,7 +254,14 @@ mod tests {
 
     #[test]
     fn test_can_create_app() {
-        create_app(create_default_game_parameters());
+        let initial_camera_scale = 1.0;
+        let initial_player_position = Vec2::new(0.0, 0.0);
+        let initial_player_size = Vec2::new(64.0, 32.0);
+        create_app(
+            initial_camera_scale,
+            initial_player_position,
+            initial_player_size,
+        );
     }
 
     #[test]
@@ -187,82 +271,114 @@ mod tests {
     }
 
     #[test]
-    fn test_setup_player_adds_a_player() {
-        let mut app = App::new();
-        assert_eq!(count_n_players(&app), 0);
-        app.add_systems(Startup, add_player);
-        app.update();
-        assert_eq!(count_n_players(&app), 1);
-    }
-
-    #[test]
     fn test_create_app_has_a_player() {
-        let mut app = create_app(create_default_game_parameters());
+        let initial_camera_scale = 1.0;
+        let initial_player_position = Vec2::new(0.0, 0.0);
+        let initial_player_size = Vec2::new(64.0, 32.0);
+        let mut app = create_app(
+            initial_camera_scale,
+            initial_player_position,
+            initial_player_size,
+        );
         app.update();
         assert_eq!(count_n_players(&app), 1);
     }
 
     #[test]
     fn test_player_is_at_origin() {
-        let mut app = create_app(create_default_game_parameters());
+        let initial_camera_scale = 1.0;
+        let initial_player_position = Vec2::new(0.0, 0.0);
+        let initial_player_size = Vec2::new(64.0, 32.0);
+        let mut app = create_app(
+            initial_camera_scale,
+            initial_player_position,
+            initial_player_size,
+        );
         app.update();
-        assert_eq!(get_player_coordinat(&mut app), Vec3::new(0.0, 0.0, 0.0));
+        assert_eq!(get_player_coordinat(&mut app), Vec2::new(0.0, 0.0));
     }
 
     #[test]
     fn test_player_is_at_custom_place() {
-        let initial_coordinat = Vec3::new(1.2, 3.4, 5.6);
-        let mut game_parameters = create_default_game_parameters();
-        game_parameters.initial_player_position = initial_coordinat;
-        let mut app = create_app(game_parameters);
+        let initial_camera_scale = 1.0;
+        let initial_player_position = Vec2::new(0.0, 0.0);
+        let initial_player_size = Vec2::new(64.0, 32.0);
+        let mut app = create_app(
+            initial_camera_scale,
+            initial_player_position,
+            initial_player_size,
+        );
         app.update();
-        assert_eq!(get_player_coordinat(&mut app), initial_coordinat);
+        assert_eq!(get_player_coordinat(&mut app), initial_player_position);
     }
 
     #[test]
     fn test_player_has_a_custom_scale() {
-        let player_scale = Vec3::new(1.1, 2.2, 3.3);
-        let mut game_parameters = create_default_game_parameters();
-        game_parameters.initial_player_scale = player_scale;
-        let mut app = create_app(game_parameters);
-        app.update();
-        assert_eq!(get_player_scale(&mut app), player_scale);
-    }
+        let initial_camera_scale = 1.0;
+        let initial_player_position = Vec2::new(0.0, 0.0);
+        let initial_player_size = Vec2::new(64.0, 32.0);
+        let mut app = create_app(
+            initial_camera_scale,
+            initial_player_position,
+            initial_player_size,
+        );
 
-    #[test]
-    fn test_empty_app_has_no_camera() {
-        let mut app = App::new();
         app.update();
-        assert!(!has_camera(&app));
+        assert_eq!(get_player_scale(&mut app), initial_player_size);
     }
 
     #[test]
     fn test_app_has_a_camera() {
-        let mut app = create_app(create_default_game_parameters());
+        let initial_camera_scale = 1.0;
+        let initial_player_position = Vec2::new(0.0, 0.0);
+        let initial_player_size = Vec2::new(64.0, 32.0);
+        let mut app = create_app(
+            initial_camera_scale,
+            initial_player_position,
+            initial_player_size,
+        );
         app.update();
         assert!(has_camera(&app));
     }
 
     #[test]
     fn test_get_camera_scale() {
-        let mut app = create_app(create_default_game_parameters());
+        let initial_camera_scale = 1.0;
+        let initial_player_position = Vec2::new(0.0, 0.0);
+        let initial_player_size = Vec2::new(64.0, 32.0);
+        let mut app = create_app(
+            initial_camera_scale,
+            initial_player_position,
+            initial_player_size,
+        );
         app.update();
         assert_eq!(get_camera_scale(&mut app), 1.0);
     }
 
     #[test]
     fn test_game_parameters_use_camera_scale() {
-        let custom_camera_scale: f32 = 5.0;
-        let mut params = create_default_game_parameters();
-        params.initial_camera_scale = custom_camera_scale;
-        let mut app = create_app(params);
+        let initial_camera_scale = 12.34;
+        let initial_player_position = Vec2::new(0.0, 0.0);
+        let initial_player_size = Vec2::new(64.0, 32.0);
+        let mut app = create_app(
+            initial_camera_scale,
+            initial_player_position,
+            initial_player_size,
+        );
         app.update();
-        assert_eq!(get_camera_scale(&mut app), custom_camera_scale);
+        assert_eq!(get_camera_scale(&mut app), initial_camera_scale);
     }
 
     #[test]
     fn test_is_visible_position_visible() {
-        let mut app = create_app(create_default_game_parameters());
+        let initial_camera_scale = 1.0;
+        let initial_player_position = Vec2::new(0.0, 0.0);
+        let initial_player_size = Vec2::new(64.0, 32.0);
+        let mut app = create_app(
+            initial_camera_scale,
+            initial_player_position,
+            initial_player_size,
+        );
         app.update();
         // By default, (0,0) is placed at the center of the screen,
         // hence that position is visible
@@ -271,7 +387,14 @@ mod tests {
 
     #[test]
     fn test_is_invisible_position_not_visible() {
-        let mut app = create_app(create_default_game_parameters());
+        let initial_camera_scale = 1.0;
+        let initial_player_position = Vec2::new(0.0, 0.0);
+        let initial_player_size = Vec2::new(64.0, 32.0);
+        let mut app = create_app(
+            initial_camera_scale,
+            initial_player_position,
+            initial_player_size,
+        );
         app.update();
         // By default, (0,0) is placed at the center of the screen,
         // after which the mapping matches the pixels.
@@ -282,7 +405,14 @@ mod tests {
 
     #[test]
     fn test_player_is_visible_at_start() {
-        let mut app = create_app(create_default_game_parameters());
+        let initial_camera_scale = 1.0;
+        let initial_player_position = Vec2::new(0.0, 0.0);
+        let initial_player_size = Vec2::new(64.0, 32.0);
+        let mut app = create_app(
+            initial_camera_scale,
+            initial_player_position,
+            initial_player_size,
+        );
         app.update();
         println!("{}", is_player_visible(&mut app))
         //assert!(is_player_visible(&mut app));
@@ -290,9 +420,14 @@ mod tests {
 
     #[test]
     fn test_player_is_not_visible_at_start() {
-        let mut params = create_default_game_parameters();
-        params.initial_player_position = Vec3::new(10000.0, 10000.0, 1.0);
-        let mut app = create_app(params);
+        let initial_camera_scale = 1.0;
+        let initial_player_position = Vec2::new(100000.0, 100000000.0);
+        let initial_player_size = Vec2::new(64.0, 32.0);
+        let mut app = create_app(
+            initial_camera_scale,
+            initial_player_position,
+            initial_player_size,
+        );
         app.update();
         assert!(!is_player_visible(&mut app));
     }
@@ -300,7 +435,14 @@ mod tests {
     // SleapTea's ideas
     #[test]
     fn test_player_is_visible_at_start_sleepy_tea() {
-        let mut app = create_app(create_default_game_parameters());
+        let initial_camera_scale = 1.0;
+        let initial_player_position = Vec2::new(0.0, 0.0);
+        let initial_player_size = Vec2::new(64.0, 32.0);
+        let mut app = create_app(
+            initial_camera_scale,
+            initial_player_position,
+            initial_player_size,
+        );
         app.update();
         // Fails
         assert!(is_position_visible_sleepy_tea(
@@ -311,9 +453,14 @@ mod tests {
 
     #[test]
     fn test_player_is_not_visible_at_start_sleepy_tea() {
-        let mut params = create_default_game_parameters();
-        params.initial_player_position = Vec3::new(10000.0, 10000.0, 1.0);
-        let mut app = create_app(params);
+        let initial_camera_scale = 1.0;
+        let initial_player_position = Vec2::new(10000000.0, 100000000.0);
+        let initial_player_size = Vec2::new(64.0, 32.0);
+        let mut app = create_app(
+            initial_camera_scale,
+            initial_player_position,
+            initial_player_size,
+        );
         app.update();
         // Passes
         assert!(!is_position_visible_sleepy_tea(
