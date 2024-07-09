@@ -143,7 +143,7 @@ fn is_position_visible_in_ortographic_projection_area(
     position: Vec2,
     projection: &OrthographicProjection,
 ) -> bool {
-    return projection.area.contains(position);
+    projection.area.contains(position)
 }
 
 #[cfg(test)]
@@ -152,7 +152,7 @@ fn is_position_visible(app: &mut App, position: Vec2) -> bool {
         .world_mut()
         .query::<(&Camera, &OrthographicProjection)>();
     let (_, projection) = camera_query.single(app.world());
-    return is_position_visible_in_ortographic_projection_area(position, projection);
+    is_position_visible_in_ortographic_projection_area(position, projection)
 }
 
 #[cfg(test)]
@@ -176,7 +176,7 @@ fn respond_to_mouse_move(
             let cursor_pos = maybe_cursor_pos.unwrap();
             line_cursor_pos = format!("cursor_pos: {}", coordinat_to_str(cursor_pos));
         } else {
-            line_cursor_pos = format!("cursor_pos: none");
+            line_cursor_pos = "cursor_pos: none".to_string();
         }
         let line_logical_viewport_rect: String;
 
@@ -189,7 +189,7 @@ fn respond_to_mouse_move(
                 rect_to_str(logical_viewport_rect)
             );
         } else {
-            line_logical_viewport_rect = format!("No logical_viewport_rect");
+            line_logical_viewport_rect = "No logical_viewport_rect".to_string();
         }
         // physical denotes actual screen pixels
         let line_physical_viewport_rect: String;
@@ -201,12 +201,12 @@ fn respond_to_mouse_move(
                 urect_to_str(physical_viewport_rect)
             );
         } else {
-            line_physical_viewport_rect = format!("No physical_viewport_rect");
+            line_physical_viewport_rect = "No physical_viewport_rect".to_string();
         }
         // player
-        let line_player_pos: String;
+        
         let player_pos = player_query.single().0.translation.xy();
-        line_player_pos = format!("player_pos: {}, {}", player_pos.x, player_pos.y);
+        let line_player_pos: String = format!("player_pos: {}, {}", player_pos.x, player_pos.y);
 
         // projection
         let projection_area = projection.area;
