@@ -13,7 +13,9 @@ pub fn create_app(
     // Only add this plugin in testing.
     // The main app will assume it to be absent
     if cfg!(test) {
-        app.add_plugins(bevy::window::WindowPlugin::default());
+        app.add_plugins(bevy::input::InputPlugin);
+        //app.add_plugins(bevy::window::WindowPlugin::default());
+        //app.add_plugins(bevy::scene::ScenePlugin);
     }
 
     let add_player_fn = move |/* no mut? */ commands: Commands| {
@@ -66,6 +68,14 @@ fn count_n_players(app: &App) -> usize {
     n
 }
 
+fn coordinat_to_str(coordinat: Vec2) -> String {
+    format!("({}, {})", coordinat[0], coordinat[1])
+}
+
+fn rect_to_str(r: Rect) -> String {
+    format!("({}, {})-({}, {})", r.min.x, r.min.y, r.max.x, r.max.y)
+}
+
 #[cfg(test)]
 fn get_camera_scale(app: &mut App) -> f32 {
     let mut query = app.world_mut().query::<&OrthographicProjection>();
@@ -110,6 +120,7 @@ fn has_camera(app: &App) -> bool {
     false
 }
 
+/*
 #[cfg(test)]
 fn is_position_visible_sleepy_tea(app: &mut App, position: Vec2) -> bool {
     let position_3d = Vec3::new(position.x, position.y, 0.0);
@@ -122,20 +133,48 @@ fn is_position_visible_sleepy_tea(app: &mut App, position: Vec2) -> bool {
     let _point = maybe_point.unwrap();
     true
 }
+*/
+
+fn is_position_visible_in_ortographic_projection_area(
+    position: Vec2,
+    projection: &OrthographicProjection,
+) -> bool {
+    // MUST BE PROJECTION AREA
+    return projection.area.contains(position);
+}
 
 #[cfg(test)]
 fn is_position_visible(app: &mut App, position: Vec2) -> bool {
-    let mut camera_query = app.world_mut().query::<(&Camera, &GlobalTransform)>();
-    let (camera, camera_transform) = camera_query.single(app.world());
-    let maybe_point = camera.viewport_to_world_2d(camera_transform, position);
-    if maybe_point.is_none() {
-        println!("NONE");
-        return false;
-    }
-    let point = maybe_point.unwrap();
-    println!("{},{}", point.x, point.y);
-    true
+    let mut camera_query = app
+        .world_mut()
+        .query::<(&Camera, &OrthographicProjection)>();
+    let (camera, projection) = camera_query.single(app.world());
+    return is_position_visible_in_ortographic_projection_area(position, projection);
+    /*
+    let logical_viewport = camera
+        .logical_viewport_rect()
+        .expect("A camera always has a logical viewport");
+    //let maybe_point = camera.viewport_to_world_2d(camera_transform, position);
+    //if maybe_point.is_none() {
+    //    println!("NONE");
+    //    return false;
+    //}
+    // Must be in logical viewport, as this is the coordinat system that matters here
+    //let point = maybe_point.unwrap();
+    let is_in = logical_viewport.contains(position);
+    bevy::log::info!(
+        "Position ({}, {}) is in viewport ({},{})-({},{}): {}",
+        position[0],
+        position[1],
+        logical_viewport.min.x,
+        logical_viewport.min.y,
+        logical_viewport.max.x,
+        logical_viewport.max.y,
+        is_in
+    );
 
+    return logical_viewport.contains(position);
+    */
     /*
     let player_pos_3d = get_player_coordinat(app);
     let player_pos_2d = Vec2::new(player_pos_3d.x, player_pos_3d.y);
@@ -181,7 +220,8 @@ fn respond_to_mouse_move(
     camera_query: Query<(&Camera, &OrthographicProjection)>,
 ) {
     for _event in mouse_motion_event.read() {
-        let mut line_cursor_pos = String::new();
+        let line_cursor_pos: String;
+        let (camera, projection) = camera_query.single();
         let maybe_cursor_pos = window_query.single().cursor_position();
         if maybe_cursor_pos.is_some() {
             let cursor_pos = maybe_cursor_pos.unwrap();
@@ -189,8 +229,10 @@ fn respond_to_mouse_move(
         } else {
             line_cursor_pos = format!("cursor_pos: none");
         }
-        let mut line_logical_viewport_rect = String::new();
-        let maybe_logical_viewport_rect = camera_query.single().0.logical_viewport_rect();
+        let line_logical_viewport_rect: String;
+
+        let maybe_logical_viewport_rect = camera.logical_viewport_rect();
+        //let maybe_logical_viewport_rect = projection.logical_viewport_rect();
         if maybe_logical_viewport_rect.is_some() {
             let logical_viewport_rect = maybe_logical_viewport_rect.unwrap();
             line_logical_viewport_rect = format!(
@@ -204,8 +246,8 @@ fn respond_to_mouse_move(
             line_logical_viewport_rect = format!("No logical_viewport_rect");
         }
         // physical denotes actual screen pixels
-        let mut line_physical_viewport_rect = String::new();
-        let maybe_physical_viewport_rect = camera_query.single().0.physical_viewport_rect();
+        let line_physical_viewport_rect: String;
+        let maybe_physical_viewport_rect = camera.physical_viewport_rect();
         if maybe_physical_viewport_rect.is_some() {
             let physical_viewport_rect = maybe_physical_viewport_rect.unwrap();
             line_physical_viewport_rect = format!(
@@ -219,12 +261,12 @@ fn respond_to_mouse_move(
             line_physical_viewport_rect = format!("No physical_viewport_rect");
         }
         // player
-        let mut line_player_pos = String::new();
+        let line_player_pos: String;
         let player_pos = player_query.single().0.translation.xy();
         line_player_pos = format!("player_pos: {}, {}", player_pos.x, player_pos.y);
 
         // projection
-        let projection_area = camera_query.single().1.area;
+        let projection_area = projection.area;
         let line_projection_area = format!(
             "projection_area: ({}, {})-({}, {})",
             projection_area.min.x,
@@ -232,13 +274,23 @@ fn respond_to_mouse_move(
             projection_area.max.x,
             projection_area.max.y
         );
+        /*
+                let circle_viewport_position = camera
+                    .world_to_viewport(global_transform, circle_tns.translation)
+                    .unwrap();
+        */
+        let line_is_in = format!(
+            "is_player_visible: {}",
+            is_position_visible_in_ortographic_projection_area(player_pos, projection)
+        );
         text_query.single_mut().sections[0].value = format!(
-            "{}\n{}\n{}\n{}\n{}",
+            "{}\n{}\n{}\n{}\n{}\n{}",
             line_cursor_pos,
             line_player_pos,
             line_logical_viewport_rect,
             line_physical_viewport_rect,
-            line_projection_area
+            line_projection_area,
+            line_is_in
         );
     }
 }
@@ -383,6 +435,7 @@ mod tests {
         // By default, (0,0) is placed at the center of the screen,
         // hence that position is visible
         assert!(is_position_visible(&mut app, Vec2::new(0.0, 0.0)));
+        assert!(is_player_visible(&mut app));
     }
 
     #[test]
@@ -433,6 +486,7 @@ mod tests {
     }
 
     // SleapTea's ideas
+    /*
     #[test]
     fn test_player_is_visible_at_start_sleepy_tea() {
         let initial_camera_scale = 1.0;
@@ -468,4 +522,5 @@ mod tests {
             Vec2::new(10000.0, 10000.0)
         ));
     }
+    */
 }
