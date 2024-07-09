@@ -76,6 +76,10 @@ fn rect_to_str(r: Rect) -> String {
     format!("({}, {})-({}, {})", r.min.x, r.min.y, r.max.x, r.max.y)
 }
 
+fn urect_to_str(r: URect) -> String {
+    format!("({}, {})-({}, {})", r.min.x, r.min.y, r.max.x, r.max.y)
+}
+
 #[cfg(test)]
 fn get_camera_scale(app: &mut App) -> f32 {
     let mut query = app.world_mut().query::<&OrthographicProjection>();
@@ -139,7 +143,6 @@ fn is_position_visible_in_ortographic_projection_area(
     position: Vec2,
     projection: &OrthographicProjection,
 ) -> bool {
-    // MUST BE PROJECTION AREA
     return projection.area.contains(position);
 }
 
@@ -148,62 +151,8 @@ fn is_position_visible(app: &mut App, position: Vec2) -> bool {
     let mut camera_query = app
         .world_mut()
         .query::<(&Camera, &OrthographicProjection)>();
-    let (camera, projection) = camera_query.single(app.world());
+    let (_, projection) = camera_query.single(app.world());
     return is_position_visible_in_ortographic_projection_area(position, projection);
-    /*
-    let logical_viewport = camera
-        .logical_viewport_rect()
-        .expect("A camera always has a logical viewport");
-    //let maybe_point = camera.viewport_to_world_2d(camera_transform, position);
-    //if maybe_point.is_none() {
-    //    println!("NONE");
-    //    return false;
-    //}
-    // Must be in logical viewport, as this is the coordinat system that matters here
-    //let point = maybe_point.unwrap();
-    let is_in = logical_viewport.contains(position);
-    bevy::log::info!(
-        "Position ({}, {}) is in viewport ({},{})-({},{}): {}",
-        position[0],
-        position[1],
-        logical_viewport.min.x,
-        logical_viewport.min.y,
-        logical_viewport.max.x,
-        logical_viewport.max.y,
-        is_in
-    );
-
-    return logical_viewport.contains(position);
-    */
-    /*
-    let player_pos_3d = get_player_coordinat(app);
-    let player_pos_2d = Vec2::new(player_pos_3d.x, player_pos_3d.y);
-    let mut query = app.world().query::<(&Camera, &GlobalTransform)>();
-    let (camera, camera_transform) = query.single(&app.world());
-    let maybe_point = camera.viewport_to_world_2d(camera_transform, player_pos_2d);
-    if maybe_point.is_none() {
-        return false;
-    }
-    return true;
-    */
-
-    /*
-    let mut query = app.world().query::<(&Camera, &GlobalTransform)>();
-    let (camera, _) = query.single(&app.world());
-
-    let maybe_rect = camera.physical_viewport_rect();
-    if maybe_rect.is_none() {
-        println!("NONE");
-        return false;
-    }
-    let rect = maybe_rect.unwrap();
-    println!(
-        "({},{})-({},{})",
-        rect.min.x, rect.min.y, rect.max.x, rect.max.y
-    );
-    return true;
-
-     */
 }
 
 #[cfg(test)]
@@ -225,7 +174,7 @@ fn respond_to_mouse_move(
         let maybe_cursor_pos = window_query.single().cursor_position();
         if maybe_cursor_pos.is_some() {
             let cursor_pos = maybe_cursor_pos.unwrap();
-            line_cursor_pos = format!("cursor_pos: {}, {}", cursor_pos.x, cursor_pos.y);
+            line_cursor_pos = format!("cursor_pos: {}", coordinat_to_str(cursor_pos));
         } else {
             line_cursor_pos = format!("cursor_pos: none");
         }
@@ -236,11 +185,8 @@ fn respond_to_mouse_move(
         if maybe_logical_viewport_rect.is_some() {
             let logical_viewport_rect = maybe_logical_viewport_rect.unwrap();
             line_logical_viewport_rect = format!(
-                "logical_viewport_rect: ({}, {})-({}, {})",
-                logical_viewport_rect.min.x,
-                logical_viewport_rect.min.y,
-                logical_viewport_rect.max.x,
-                logical_viewport_rect.max.y
+                "logical_viewport_rect: {}",
+                rect_to_str(logical_viewport_rect)
             );
         } else {
             line_logical_viewport_rect = format!("No logical_viewport_rect");
@@ -251,11 +197,8 @@ fn respond_to_mouse_move(
         if maybe_physical_viewport_rect.is_some() {
             let physical_viewport_rect = maybe_physical_viewport_rect.unwrap();
             line_physical_viewport_rect = format!(
-                "physical_viewport_rect: ({}, {})-({}, {})",
-                physical_viewport_rect.min.x,
-                physical_viewport_rect.min.y,
-                physical_viewport_rect.max.x,
-                physical_viewport_rect.max.y
+                "physical_viewport_rect: {}",
+                urect_to_str(physical_viewport_rect)
             );
         } else {
             line_physical_viewport_rect = format!("No physical_viewport_rect");
@@ -267,18 +210,7 @@ fn respond_to_mouse_move(
 
         // projection
         let projection_area = projection.area;
-        let line_projection_area = format!(
-            "projection_area: ({}, {})-({}, {})",
-            projection_area.min.x,
-            projection_area.min.y,
-            projection_area.max.x,
-            projection_area.max.y
-        );
-        /*
-                let circle_viewport_position = camera
-                    .world_to_viewport(global_transform, circle_tns.translation)
-                    .unwrap();
-        */
+        let line_projection_area = format!("projection_area: {}", rect_to_str(projection_area));
         let line_is_in = format!(
             "is_player_visible: {}",
             is_position_visible_in_ortographic_projection_area(player_pos, projection)
@@ -484,43 +416,4 @@ mod tests {
         app.update();
         assert!(!is_player_visible(&mut app));
     }
-
-    // SleapTea's ideas
-    /*
-    #[test]
-    fn test_player_is_visible_at_start_sleepy_tea() {
-        let initial_camera_scale = 1.0;
-        let initial_player_position = Vec2::new(0.0, 0.0);
-        let initial_player_size = Vec2::new(64.0, 32.0);
-        let mut app = create_app(
-            initial_camera_scale,
-            initial_player_position,
-            initial_player_size,
-        );
-        app.update();
-        // Fails
-        assert!(is_position_visible_sleepy_tea(
-            &mut app,
-            Vec2::new(0.0, 0.0)
-        ));
-    }
-
-    #[test]
-    fn test_player_is_not_visible_at_start_sleepy_tea() {
-        let initial_camera_scale = 1.0;
-        let initial_player_position = Vec2::new(10000000.0, 100000000.0);
-        let initial_player_size = Vec2::new(64.0, 32.0);
-        let mut app = create_app(
-            initial_camera_scale,
-            initial_player_position,
-            initial_player_size,
-        );
-        app.update();
-        // Passes
-        assert!(!is_position_visible_sleepy_tea(
-            &mut app,
-            Vec2::new(10000.0, 10000.0)
-        ));
-    }
-    */
 }
