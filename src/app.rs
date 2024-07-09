@@ -169,42 +169,38 @@ fn respond_to_mouse_move(
     camera_query: Query<(&Camera, &OrthographicProjection)>,
 ) {
     for _event in mouse_motion_event.read() {
-        let line_cursor_pos: String;
         let (camera, projection) = camera_query.single();
         let maybe_cursor_pos = window_query.single().cursor_position();
-        if maybe_cursor_pos.is_some() {
-            let cursor_pos = maybe_cursor_pos.unwrap();
-            line_cursor_pos = format!("cursor_pos: {}", coordinat_to_str(cursor_pos));
+        let line_cursor_pos: String = if maybe_cursor_pos.is_some() {
+            format!(
+                "cursor_pos: {}",
+                coordinat_to_str(maybe_cursor_pos.unwrap())
+            )
+            .to_string()
         } else {
-            line_cursor_pos = "cursor_pos: none".to_string();
-        }
-        let line_logical_viewport_rect: String;
+            "cursor_pos: outside window".to_string()
+        };
 
         let maybe_logical_viewport_rect = camera.logical_viewport_rect();
-        //let maybe_logical_viewport_rect = projection.logical_viewport_rect();
-        if maybe_logical_viewport_rect.is_some() {
-            let logical_viewport_rect = maybe_logical_viewport_rect.unwrap();
-            line_logical_viewport_rect = format!(
+        let line_logical_viewport_rect: String = if maybe_logical_viewport_rect.is_some() {
+            format!(
                 "logical_viewport_rect: {}",
-                rect_to_str(logical_viewport_rect)
-            );
+                rect_to_str(maybe_logical_viewport_rect.unwrap())
+            )
         } else {
-            line_logical_viewport_rect = "No logical_viewport_rect".to_string();
-        }
+            "No logical_viewport_rect".to_string()
+        };
         // physical denotes actual screen pixels
-        let line_physical_viewport_rect: String;
         let maybe_physical_viewport_rect = camera.physical_viewport_rect();
-        if maybe_physical_viewport_rect.is_some() {
-            let physical_viewport_rect = maybe_physical_viewport_rect.unwrap();
-            line_physical_viewport_rect = format!(
+        let line_physical_viewport_rect: String = if maybe_physical_viewport_rect.is_some() {
+            format!(
                 "physical_viewport_rect: {}",
-                urect_to_str(physical_viewport_rect)
-            );
+                urect_to_str(maybe_physical_viewport_rect.unwrap())
+            )
         } else {
-            line_physical_viewport_rect = "No physical_viewport_rect".to_string();
-        }
+            "No physical_viewport_rect".to_string()
+        };
         // player
-        
         let player_pos = player_query.single().0.translation.xy();
         let line_player_pos: String = format!("player_pos: {}, {}", player_pos.x, player_pos.y);
 
