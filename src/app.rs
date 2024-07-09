@@ -34,10 +34,10 @@ pub fn create_app(
 }
 
 fn add_text(mut commands: Commands) {
-    commands.spawn((Text2dBundle {
+    commands.spawn(Text2dBundle {
         text: Text::from_section(String::new(), TextStyle { ..default() }),
         ..default()
-    },));
+    });
 }
 
 fn add_player(mut commands: Commands, initial_player_position: Vec2, initial_player_scale: Vec2) {
@@ -86,7 +86,7 @@ fn get_camera_scale(app: &mut App) -> f32 {
 }
 
 #[cfg(test)]
-fn get_player_coordinat(app: &mut App) -> Vec2 {
+fn get_player_position(app: &mut App) -> Vec2 {
     let mut query = app.world_mut().query::<(&Transform, &Player)>();
     let (transform, _) = query.single(app.world());
     transform.translation.xy()
@@ -124,7 +124,7 @@ fn is_position_visible(app: &mut App, position: Vec2) -> bool {
 
 #[cfg(test)]
 fn is_player_visible(app: &mut App) -> bool {
-    let position = get_player_coordinat(app).xy();
+    let position = get_player_position(app);
     is_position_visible(app, position)
 }
 
@@ -242,7 +242,7 @@ mod tests {
             initial_player_size,
         );
         app.update();
-        assert_eq!(get_player_coordinat(&mut app), Vec2::new(0.0, 0.0));
+        assert_eq!(get_player_position(&mut app), Vec2::new(0.0, 0.0));
     }
 
     #[test]
@@ -256,7 +256,7 @@ mod tests {
             initial_player_size,
         );
         app.update();
-        assert_eq!(get_player_coordinat(&mut app), initial_player_position);
+        assert_eq!(get_player_position(&mut app), initial_player_position);
     }
 
     #[test]
@@ -362,8 +362,8 @@ mod tests {
             initial_player_size,
         );
         app.update();
-        println!("{}", is_player_visible(&mut app))
-        //assert!(is_player_visible(&mut app));
+        //println!("{}", is_player_visible(&mut app))
+        assert!(is_player_visible(&mut app));
     }
 
     #[test]
