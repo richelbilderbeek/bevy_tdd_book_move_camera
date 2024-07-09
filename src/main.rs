@@ -3,14 +3,8 @@ use bevy::prelude::*;
 mod app;
 
 fn main() {
-    let initial_camera_scale = 1.0;
-    let initial_player_position = Vec2::new(320.0, 240.0);
-    let initial_player_size = Vec2::new(64.0, 32.0);
-    let mut app = create_app(
-        initial_camera_scale,
-        initial_player_position,
-        initial_player_size,
-    );
+    let velocity = Vec2::new(0.2, 0.1);
+    let mut app = create_app(velocity);
     app.add_plugins(DefaultPlugins);
     app.run();
 }
