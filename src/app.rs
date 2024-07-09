@@ -14,8 +14,6 @@ pub fn create_app(
     // The main app will assume it to be absent
     if cfg!(test) {
         app.add_plugins(bevy::input::InputPlugin);
-        //app.add_plugins(bevy::window::WindowPlugin::default());
-        //app.add_plugins(bevy::scene::ScenePlugin);
     }
 
     let add_player_fn = move |/* no mut? */ commands: Commands| {
@@ -73,7 +71,7 @@ fn coordinat_to_str(coordinat: Vec2) -> String {
 }
 
 fn rect_to_str(r: Rect) -> String {
-    format!("({}, {})-({}, {})", r.min.x, r.min.y, r.max.x, r.max.y)
+    format!("{}-{}", coordinat_to_str(r.min), coordinat_to_str(r.max))
 }
 
 fn urect_to_str(r: URect) -> String {
@@ -101,19 +99,6 @@ fn get_player_scale(app: &mut App) -> Vec2 {
     transform.scale.xy()
 }
 
-/*
-#[cfg(test)]
-fn get_all_components_names(app: &App) -> Vec<String> {
-    use std::str::FromStr;
-
-    let mut v: Vec<String> = Vec::new();
-    for c in app.world().components().iter() {
-        v.push(String::from_str(c.name()).unwrap());
-    }
-    v
-}
-*/
-
 #[cfg(test)]
 fn has_camera(app: &App) -> bool {
     for c in app.world().components().iter() {
@@ -123,23 +108,7 @@ fn has_camera(app: &App) -> bool {
     }
     false
 }
-
-/*
-#[cfg(test)]
-fn is_position_visible_sleepy_tea(app: &mut App, position: Vec2) -> bool {
-    let position_3d = Vec3::new(position.x, position.y, 0.0);
-    let mut camera_query = app.world_mut().query::<(&Camera, &GlobalTransform)>();
-    let (camera, camera_transform) = camera_query.single(app.world());
-    let maybe_point = camera.world_to_viewport(camera_transform, position_3d);
-    if maybe_point.is_none() {
-        return false;
-    }
-    let _point = maybe_point.unwrap();
-    true
-}
-*/
-
-fn is_position_visible_in_ortographic_projection_area(
+fn is_position_visible_in_projection_area(
     position: Vec2,
     projection: &OrthographicProjection,
 ) -> bool {
@@ -148,11 +117,9 @@ fn is_position_visible_in_ortographic_projection_area(
 
 #[cfg(test)]
 fn is_position_visible(app: &mut App, position: Vec2) -> bool {
-    let mut camera_query = app
-        .world_mut()
-        .query::<(&Camera, &OrthographicProjection)>();
-    let (_, projection) = camera_query.single(app.world());
-    is_position_visible_in_ortographic_projection_area(position, projection)
+    let mut camera_query = app.world_mut().query::<&OrthographicProjection>();
+    let projection = camera_query.single(app.world());
+    is_position_visible_in_projection_area(position, projection)
 }
 
 #[cfg(test)]
@@ -209,7 +176,7 @@ fn respond_to_mouse_move(
         let line_projection_area = format!("projection_area: {}", rect_to_str(projection_area));
         let line_is_in = format!(
             "is_player_visible: {}",
-            is_position_visible_in_ortographic_projection_area(player_pos, projection)
+            is_position_visible_in_projection_area(player_pos, projection)
         );
         text_query.single_mut().sections[0].value = format!(
             "{}\n{}\n{}\n{}\n{}\n{}",
