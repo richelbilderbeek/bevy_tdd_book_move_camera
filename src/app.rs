@@ -83,7 +83,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_can_create_app() {
+    fn test_can_create_app_with_a_velocity() {
         let velocity = Vec2::new(0.2, 0.1);
         create_app(velocity);
     }
@@ -91,6 +91,7 @@ mod tests {
     #[test]
     fn test_empty_app_has_no_moving_cameras() {
         let mut app = App::new();
+        app.update();
         assert_eq!(count_n_moving_cameras(&mut app), 0);
     }
 
@@ -119,7 +120,7 @@ mod tests {
     }
 
     #[test]
-    fn test_camera_is_at_origin() {
+    fn test_camera_starts_at_origin() {
         let velocity = Vec2::new(0.0, 0.0);
         let mut app = create_app(velocity);
         app.update();
