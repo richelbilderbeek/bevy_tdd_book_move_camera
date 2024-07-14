@@ -36,7 +36,7 @@ fn add_player(mut commands: Commands) {
     commands.spawn((
         SpriteBundle {
             transform: Transform {
-                scale: Vec3::new(64.0, 32.0, 1.0),
+                size: Vec3::new(64.0, 32.0, 1.0),
                 ..default()
             },
             ..default()
@@ -63,7 +63,7 @@ fn get_player_position(app: &mut App) -> Vec2 {
 fn get_player_size(app: &mut App) -> Vec2 {
     let mut query = app.world_mut().query::<(&Transform, &Player)>();
     let (transform, _) = query.single(app.world());
-    transform.scale.xy()
+    transform.size.xy()
 }
 
 #[cfg(test)]
@@ -112,7 +112,7 @@ mod tests {
     }
 
     #[test]
-    fn test_player_has_a_custom_scale() {
+    fn test_player_has_a_custom_size() {
         let velocity = Vec2::new(0.0, 0.0);
         let mut app = create_app(velocity);
         app.update();
