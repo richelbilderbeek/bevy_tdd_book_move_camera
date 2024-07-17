@@ -26,10 +26,7 @@ pub fn create_app(velocity: Vec2) -> App {
 }
 
 fn add_moving_camera(mut commands: Commands, velocity: Vec2) {
-    commands.spawn((
-        Camera2dBundle::default(),
-        MovingCamera { velocity },
-    ));
+    commands.spawn((Camera2dBundle::default(), MovingCamera { velocity }));
 }
 
 fn add_player(mut commands: Commands) {
