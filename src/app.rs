@@ -17,7 +17,7 @@ pub fn create_app(velocity: Vec2) -> App {
         app.add_plugins(bevy::input::InputPlugin);
     }
     let add_camera_fn = move |commands: Commands| add_moving_camera(commands, velocity);
-    app.add_systems(Startup, (add_camera_fun, add_player));
+    app.add_systems(Startup, (add_camera_fn, add_player));
     app.add_systems(Update, move_camera);
 
     // Do not do update, as this will disallow to do more steps
